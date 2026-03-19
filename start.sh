@@ -47,7 +47,7 @@ trap cleanup SIGINT SIGTERM EXIT
 # Test RTSP connection first
 echo ""
 echo "Testing camera connection..."
-if ffmpeg -rtsp_transport tcp -stimeout 5000000 -i "$RTSP_URL" -t 1 -f null - -loglevel error 2>&1; then
+if ffmpeg -rtsp_transport tcp -i "$RTSP_URL" -t 1 -f null - -loglevel error 2>&1; then
     echo "Camera is reachable!"
 else
     echo "WARNING: Could not reach camera at $RTSP_URL"
@@ -61,7 +61,6 @@ start_ffmpeg() {
         echo "[ffmpeg] Starting RTSP to HLS conversion..."
         rm -f "$HLS_DIR"/*.ts "$HLS_DIR"/*.m3u8 2>/dev/null
         ffmpeg -rtsp_transport tcp \
-            -stimeout 5000000 \
             -i "$RTSP_URL" \
             -c:v copy -c:a aac \
             -f hls \
