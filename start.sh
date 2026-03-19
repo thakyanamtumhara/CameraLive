@@ -17,30 +17,35 @@ echo "========================================="
 cleanup() {
     echo ""
     echo "Shutting down..."
-    kill $FFMPEG_PID $HTTP_PID $CF_PID 2>/dev/null
+    kill $(jobs -p) 2>/dev/null
     rm -rf "$HLS_DIR"
     exit 0
 }
 trap cleanup SIGINT SIGTERM
 
-# Start ffmpeg: RTSP -> HLS
-echo "Starting ffmpeg (RTSP to HLS)..."
-ffmpeg -rtsp_transport tcp -i "$RTSP_URL" \
-    -c:v copy -c:a aac \
-    -f hls \
-    -hls_time 2 \
-    -hls_list_size 5 \
-    -hls_flags delete_segments+append_list \
-    -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
-    "$HLS_DIR/stream.m3u8" \
-    -loglevel warning &
+# Start ffmpeg with auto-restart loop
+start_ffmpeg() {
+    while true; do
+        echo "Starting ffmpeg (RTSP to HLS)..."
+        rm -f "$HLS_DIR"/*.ts "$HLS_DIR"/*.m3u8 2>/dev/null
+        ffmpeg -rtsp_transport tcp \
+            -stimeout 5000000 \
+            -i "$RTSP_URL" \
+            -c:v copy -c:a aac \
+            -f hls \
+            -hls_time 2 \
+            -hls_list_size 5 \
+            -hls_flags delete_segments+append_list \
+            -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
+            "$HLS_DIR/stream.m3u8" \
+            -loglevel warning
+        echo "ffmpeg stopped. Restarting in 3 seconds..."
+        sleep 3
+    done
+}
+start_ffmpeg &
 FFMPEG_PID=$!
 sleep 5
-
-if ! kill -0 $FFMPEG_PID 2>/dev/null; then
-    echo "ERROR: ffmpeg failed to start!"
-    exit 1
-fi
 echo "ffmpeg running! Converting RTSP to HLS..."
 
 # Start Python HTTP server to serve HLS files
