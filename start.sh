@@ -69,7 +69,7 @@ start_ffmpeg() {
             -hls_flags delete_segments+append_list \
             -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
             "$HLS_DIR/stream.m3u8" \
-            -loglevel warning 2>&1
+            -loglevel error 2>&1
         echo "[ffmpeg] Stopped (exit code: $?). Restarting in 3s..."
         sleep 3
     done
