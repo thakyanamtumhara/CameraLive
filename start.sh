@@ -20,8 +20,9 @@ command -v cloudflared >/dev/null 2>&1 || { echo "ERROR: cloudflared not found."
 echo "All tools found."
 
 # Kill any leftover processes from previous runs
-pkill -f "ffmpeg.*$RTSP_URL" 2>/dev/null
+pkill -f "ffmpeg.*stream1" 2>/dev/null
 pkill -f "http.server $HLS_PORT" 2>/dev/null
+pkill -f "cloudflared" 2>/dev/null
 sleep 1
 
 # Clean and create HLS directory
@@ -36,6 +37,9 @@ echo "========================================="
 cleanup() {
     echo ""
     echo "Shutting down..."
+    pkill -f "ffmpeg.*stream1" 2>/dev/null
+    pkill -f "http.server $HLS_PORT" 2>/dev/null
+    pkill -f "cloudflared" 2>/dev/null
     kill $(jobs -p) 2>/dev/null
     wait 2>/dev/null
     rm -rf "$HLS_DIR"
@@ -44,23 +48,13 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM EXIT
 
-# Test RTSP connection first
-echo ""
-echo "Testing camera connection..."
-if ffmpeg -rtsp_transport tcp -i "$RTSP_URL" -t 1 -f null - -loglevel error 2>&1; then
-    echo "Camera is reachable!"
-else
-    echo "WARNING: Could not reach camera at $RTSP_URL"
-    echo "Check: Is the camera on? Is your phone on the same WiFi?"
-    echo "Continuing anyway (will retry)..."
-fi
-
-# Start ffmpeg with auto-restart loop
+# Start ffmpeg with auto-restart loop (all output silenced)
 start_ffmpeg() {
     while true; do
-        echo "[ffmpeg] Starting RTSP to HLS conversion..."
+        echo "[ffmpeg] Connecting to camera..."
         rm -f "$HLS_DIR"/*.ts "$HLS_DIR"/*.m3u8 2>/dev/null
         ffmpeg -rtsp_transport tcp \
+            -fflags +genpts+discardcorrupt \
             -i "$RTSP_URL" \
             -c:v copy -c:a aac \
             -f hls \
@@ -69,72 +63,79 @@ start_ffmpeg() {
             -hls_flags delete_segments+append_list \
             -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
             "$HLS_DIR/stream.m3u8" \
-            -loglevel error 2>&1
-        echo "[ffmpeg] Stopped (exit code: $?). Restarting in 3s..."
+            -loglevel fatal 2>/dev/null
+        echo "[ffmpeg] Disconnected. Reconnecting in 3s..."
         sleep 3
     done
 }
 start_ffmpeg &
 FFMPEG_LOOP_PID=$!
-echo "ffmpeg loop started (PID: $FFMPEG_LOOP_PID)"
 
 # Wait for first HLS segment to appear
-echo "Waiting for first HLS segment..."
+echo "Waiting for camera stream..."
 for i in $(seq 1 30); do
     if [ -f "$HLS_DIR/stream.m3u8" ]; then
-        echo "HLS stream ready!"
+        echo "Stream is live!"
         break
     fi
     if [ "$i" -eq 30 ]; then
-        echo "WARNING: No HLS segments after 30s. ffmpeg may be struggling."
-        echo "Stream will start when camera connects."
+        echo "WARNING: No stream after 30s. Will keep trying in background."
     fi
     sleep 1
 done
 
 # Start Python HTTP server to serve HLS files
-echo ""
 echo "Starting HTTP server on port $HLS_PORT..."
 cd "$HLS_DIR" || { echo "ERROR: Cannot cd to $HLS_DIR"; exit 1; }
-python3 -m http.server "$HLS_PORT" --bind 0.0.0.0 &
+python3 -m http.server "$HLS_PORT" --bind 0.0.0.0 > /dev/null 2>&1 &
 HTTP_PID=$!
 cd - > /dev/null
 sleep 2
 
 if ! kill -0 $HTTP_PID 2>/dev/null; then
     echo "ERROR: HTTP server failed to start!"
-    echo "Port $HLS_PORT may be in use. Run: pkill -f 'http.server $HLS_PORT'"
     exit 1
 fi
-echo "HTTP server running on port $HLS_PORT (PID: $HTTP_PID)"
+echo "HTTP server running on port $HLS_PORT"
 
-# Start Cloudflare Tunnel
-echo ""
+# Start Cloudflare Tunnel and capture the URL
 echo "Starting Cloudflare Tunnel..."
-cloudflared tunnel --url http://127.0.0.1:$HLS_PORT 2>&1 &
+CF_LOG="$HOME/.cf_tunnel.log"
+cloudflared tunnel --url http://127.0.0.1:$HLS_PORT > "$CF_LOG" 2>&1 &
 CF_PID=$!
-sleep 8
+
+# Wait and extract the tunnel URL
+TUNNEL_URL=""
+for i in $(seq 1 15); do
+    TUNNEL_URL=$(grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' "$CF_LOG" 2>/dev/null | head -1)
+    if [ -n "$TUNNEL_URL" ]; then
+        break
+    fi
+    sleep 1
+done
 
 echo ""
 echo "========================================="
-echo "  ALL SERVICES RUNNING!"
-echo ""
-echo "  Look above for your Cloudflare URL:"
-echo "  https://xxxxx-xxxxx.trycloudflare.com"
-echo ""
-echo "  Open in browser or VLC:"
-echo "  <tunnel-url>/stream.m3u8"
-echo ""
-echo "  Or use camera.html with the URL."
+if [ -n "$TUNNEL_URL" ]; then
+    echo "  STREAM IS LIVE!"
+    echo ""
+    echo "  Your URL:"
+    echo "  $TUNNEL_URL/stream.m3u8"
+    echo ""
+    echo "  Open this in VLC or any browser."
+    echo "  Or update camera.html with this URL."
+else
+    echo "  Services running but tunnel URL not found."
+    echo "  Check $CF_LOG for the URL."
+fi
 echo "========================================="
 echo ""
-echo "Press Ctrl+C to stop all services."
+echo "Press Ctrl+C to stop."
 echo ""
 
-# Keep running and monitor
+# Keep running quietly
 while true; do
     if ! kill -0 $FFMPEG_LOOP_PID 2>/dev/null; then
-        echo "ERROR: ffmpeg loop died! Restarting..."
         start_ffmpeg &
         FFMPEG_LOOP_PID=$!
     fi
