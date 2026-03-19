@@ -2,6 +2,7 @@
 ############################################
 # CameraLive - One Command Install Script
 # Run in Termux on Android phone
+# Uses proot-distro (Ubuntu) for compatibility
 ############################################
 
 set -e
@@ -12,68 +13,119 @@ echo "========================================="
 echo ""
 
 # Update packages
-echo "[1/5] Updating Termux packages..."
+echo "[1/4] Updating Termux packages..."
 pkg update -y && pkg upgrade -y
 
-# Install required packages
-echo "[2/5] Installing dependencies..."
-pkg install -y wget tar
+# Install proot-distro
+echo "[2/4] Installing proot-distro..."
+pkg install -y proot-distro
 
-# Create working directory
-echo "[3/5] Setting up directory..."
-INSTALL_DIR="$HOME/cameralive"
-mkdir -p "$INSTALL_DIR"
-cd "$INSTALL_DIR"
+# Install Ubuntu inside Termux
+echo "[3/4] Installing Ubuntu (this takes a few minutes)..."
+proot-distro install ubuntu 2>/dev/null || echo "Ubuntu already installed, continuing..."
 
-# Download MediaMTX (ARM64 Linux build for Termux)
-echo "[4/5] Downloading MediaMTX..."
-MEDIAMTX_VERSION="v1.11.3"
-MEDIAMTX_URL="https://github.com/bluenviron/mediamtx/releases/download/${MEDIAMTX_VERSION}/mediamtx_${MEDIAMTX_VERSION}_linux_arm64v8.tar.gz"
-wget -q --show-progress -O mediamtx.tar.gz "$MEDIAMTX_URL"
+# Setup everything inside Ubuntu
+echo "[4/4] Setting up MediaMTX + cloudflared inside Ubuntu..."
+proot-distro login ubuntu -- bash -c '
+set -e
+apt update -y && apt install -y wget ca-certificates
+
+# Detect architecture
+ARCH=$(uname -m)
+echo "Detected architecture: $ARCH"
+
+if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+    MTX_ARCH="arm64v8"
+    CF_ARCH="arm64"
+elif [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv8l" ]; then
+    MTX_ARCH="armv7"
+    CF_ARCH="arm"
+else
+    echo "ERROR: Unsupported architecture: $ARCH"
+    exit 1
+fi
+
+echo "Downloading MediaMTX ($MTX_ARCH)..."
+wget -q --show-progress -O mediamtx.tar.gz "https://github.com/bluenviron/mediamtx/releases/download/v1.11.3/mediamtx_v1.11.3_linux_${MTX_ARCH}.tar.gz"
 tar -xzf mediamtx.tar.gz mediamtx
 rm mediamtx.tar.gz
 chmod +x mediamtx
 
-# Download cloudflared (ARM64 Linux build)
-echo "[5/5] Downloading cloudflared..."
-CLOUDFLARED_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64"
-wget -q --show-progress -O cloudflared "$CLOUDFLARED_URL"
+echo "Downloading cloudflared ($CF_ARCH)..."
+wget -q --show-progress -O cloudflared "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}"
 chmod +x cloudflared
 
-# Copy config files from repo (if cloned) or prompt user
-if [ -f "$HOME/CameraLive/mediamtx.yml" ]; then
-    cp "$HOME/CameraLive/mediamtx.yml" "$INSTALL_DIR/mediamtx.yml"
-    echo "Copied mediamtx.yml from repo."
-elif [ -f "$(dirname "$0")/mediamtx.yml" ]; then
-    cp "$(dirname "$0")/mediamtx.yml" "$INSTALL_DIR/mediamtx.yml"
-    echo "Copied mediamtx.yml from script directory."
-else
-    echo ""
-    echo "WARNING: mediamtx.yml not found."
-    echo "Please copy mediamtx.yml to $INSTALL_DIR/"
-fi
+# Create mediamtx config
+cat > mediamtx.yml << "CONF"
+logLevel: info
+hlsAddress: :8888
+hls: yes
+hlsAlwaysRemux: yes
+hlsSegmentCount: 3
+hlsSegmentDuration: 1s
+hlsAllowOrigin: '"'"'*'"'"'
+rtspAddress: :8554
+api: no
+apiAddress: :9997
+webrtc: no
+paths:
+  cam:
+    source: rtsp://admin:0j23maqt546@192.168.1.95:554/stream1
+    sourceOnDemand: no
+CONF
 
-# Copy start script
-if [ -f "$HOME/CameraLive/start.sh" ]; then
-    cp "$HOME/CameraLive/start.sh" "$INSTALL_DIR/start.sh"
-    chmod +x "$INSTALL_DIR/start.sh"
-    echo "Copied start.sh from repo."
-elif [ -f "$(dirname "$0")/start.sh" ]; then
-    cp "$(dirname "$0")/start.sh" "$INSTALL_DIR/start.sh"
-    chmod +x "$INSTALL_DIR/start.sh"
-    echo "Copied start.sh from script directory."
+# Create start script
+cat > start.sh << "SCRIPT"
+#!/bin/bash
+echo "========================================="
+echo "  CameraLive - Starting Services"
+echo "========================================="
+
+cleanup() {
+    echo "Shutting down..."
+    kill $MTX_PID $CF_PID 2>/dev/null
+    exit 0
+}
+trap cleanup SIGINT SIGTERM
+
+echo "Starting MediaMTX..."
+./mediamtx ./mediamtx.yml &
+MTX_PID=$!
+sleep 3
+
+if ! kill -0 $MTX_PID 2>/dev/null; then
+    echo "ERROR: MediaMTX failed to start!"
+    exit 1
 fi
+echo "MediaMTX running!"
+
+echo "Starting Cloudflare Tunnel..."
+./cloudflared tunnel --url http://127.0.0.1:8888 &
+CF_PID=$!
+sleep 5
+
+echo ""
+echo "========================================="
+echo "  LOOK ABOVE for your tunnel URL!"
+echo "  It looks like:"
+echo "  https://xxxxx-xxxxx.trycloudflare.com"
+echo "========================================="
+echo ""
+echo "Press Ctrl+C to stop."
+wait
+SCRIPT
+chmod +x start.sh
 
 echo ""
 echo "========================================="
 echo "  Installation Complete!"
 echo "========================================="
+'
+
 echo ""
-echo "Files installed to: $INSTALL_DIR"
+echo "========================================="
+echo "  ALL DONE! Now run this to start:"
 echo ""
-echo "Next steps:"
-echo "  1. Make sure your phone is on the same WiFi as the camera"
-echo "  2. Run: cd $INSTALL_DIR && bash start.sh"
-echo "  3. Copy the Cloudflare tunnel URL from the output"
-echo "  4. Update camera.html with that URL"
+echo "  proot-distro login ubuntu -- bash -c ./start.sh"
 echo ""
+echo "========================================="
