@@ -29,6 +29,11 @@ sleep 1
 rm -rf "$HLS_DIR"
 mkdir -p "$HLS_DIR"
 
+# Copy web pages into HLS directory so they're served by the tunnel
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cp "$SCRIPT_DIR"/warehouse-live.html "$HLS_DIR/" 2>/dev/null
+cp "$SCRIPT_DIR"/camera.html "$HLS_DIR/" 2>/dev/null
+
 echo ""
 echo "========================================="
 echo "  CameraLive - Starting Services"
@@ -117,13 +122,16 @@ done
 echo ""
 echo "========================================="
 if [ -n "$TUNNEL_URL" ]; then
+    # Update the stream URL in warehouse-live.html automatically
+    sed -i "s|const STREAM_URL = \".*\";|const STREAM_URL = \"$TUNNEL_URL/stream.m3u8\";|" "$HLS_DIR/warehouse-live.html" 2>/dev/null
+
     echo "  STREAM IS LIVE!"
     echo ""
-    echo "  Your URL:"
-    echo "  $TUNNEL_URL/stream.m3u8"
+    echo "  Warehouse Trust Page (share this with buyers):"
+    echo "  $TUNNEL_URL/warehouse-live.html"
     echo ""
-    echo "  Open this in VLC or any browser."
-    echo "  Or update camera.html with this URL."
+    echo "  Raw stream (for VLC):"
+    echo "  $TUNNEL_URL/stream.m3u8"
 else
     echo "  Services running but tunnel URL not found."
     echo "  Check $CF_LOG for the URL."
