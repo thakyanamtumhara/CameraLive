@@ -1,10 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
 ############################################
 # CameraLive - Startup Script for Termux
-# Launches services inside proot Ubuntu
+# Runs MediaMTX and Cloudflare directly
 ############################################
 
-proot-distro login ubuntu -- bash -c '
+cd "$(dirname "$0")"
+
 echo "========================================="
 echo "  CameraLive - Starting Services"
 echo "========================================="
@@ -41,4 +42,3 @@ echo "========================================="
 echo ""
 echo "Press Ctrl+C to stop."
 wait
-'
