@@ -70,7 +70,7 @@ apiAddress: :9997
 webrtc: no
 paths:
   cam:
-    source: rtsp://admin:0j23maqt546@192.168.1.95:554/stream1
+    source: rtsp://admin:0j23maqt546@192.168.1.5:554/stream1
     sourceOnDemand: no
 CONF
 
