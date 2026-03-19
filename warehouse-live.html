@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Warehouse Feed | Transparent Storage You Can Trust</title>
+    <meta name="description" content="Watch our warehouse operations live. We believe in 100% transparency — see how your goods are stored in real-time. Verified, secure, and trusted by hundreds of businesses.">
+    <meta name="keywords" content="live warehouse, godown, transparent storage, trusted warehouse, verified facility, supply chain transparency, live camera feed, secure storage">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Live Warehouse Feed | See Our Operations in Real-Time">
+    <meta property="og:description" content="100% transparency. Watch our warehouse live — because we have nothing to hide.">
+    <meta property="og:type" content="website">
+    <!-- UPDATE: Replace with your actual domain -->
+    <meta property="og:url" content="https://your-domain.com/warehouse-live.html">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Live Warehouse Feed | Transparent Storage">
+    <meta name="twitter:description" content="Watch our warehouse operations in real-time. 100% transparency.">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Your Company Name",
+        "description": "Trusted warehousing and storage provider with live transparency feed. We operate multiple godown facilities with 24/7 monitoring.",
+        "url": "https://your-domain.com",
+        "actionableFeedbackPolicy": "https://your-domain.com/warehouse-live.html",
+        "knowsAbout": ["Warehousing", "Storage", "Supply Chain", "Logistics"],
+        "hasCredential": {
+            "@type": "EducationalOccupationalCredential",
+            "credentialCategory": "Transparency Commitment"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Live Warehouse Transparency Feed",
+        "description": "Real-time live camera feed from our warehouse facility, provided for complete transparency and trust.",
+        "about": {
+            "@type": "Thing",
+            "name": "Warehouse Transparency",
+            "description": "Live video feed demonstrating operational transparency in warehousing"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            --blue: #1a56db;
+            --blue-light: #e8effc;
+            --green: #059669;
+            --green-light: #ecfdf5;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --bg-alt: #f8f9fa;
+            --border: #e5e7eb;
+            --red: #dc2626;
+            --max-w: 1100px;
+            --radius: 10px;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text);
+            background: #fff;
+            line-height: 1.6;
+        }
+
+        /* --- Nav --- */
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: var(--max-w);
+            margin: 0 auto;
+            padding: 16px 20px;
+        }
+        /* UPDATE: Replace with your company name */
+        .nav-brand { font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--green-light);
+            color: var(--green);
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 5px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.04em;
+        }
+        .pulse-dot {
+            width: 8px; height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+        /* --- Hero --- */
+        .hero {
+            text-align: center;
+            padding: 40px 20px 24px;
+        }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+        .hero p {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 620px;
+            margin: 0 auto 24px;
+        }
+        .hero-badges {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .hero-badge svg { color: var(--green); flex-shrink: 0; }
+
+        /* --- Stream --- */
+        .stream-section { max-width: 860px; margin: 0 auto; padding: 0 20px 48px; }
+        .video-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #0a0a0a;
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 4px 24px rgba(0,0,0,.12);
+        }
+        .video-wrap video { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .badge-live {
+            position: absolute;
+            top: 14px; left: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--red);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            z-index: 5;
+        }
+        .badge-live .pulse-dot { background: #fff; }
+        .timestamp-overlay {
+            position: absolute;
+            bottom: 12px; right: 14px;
+            background: rgba(0,0,0,.6);
+            color: #ccc;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-family: monospace;
+            z-index: 5;
+        }
+        .stream-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .s-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+        .s-dot.err { background: var(--red); }
+
+        .stream-error {
+            display: none;
+            text-align: center;
+            margin-top: 16px;
+            padding: 14px 20px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            color: #991b1b;
+            font-size: 0.9rem;
+        }
+        .stream-error button {
+            margin-top: 8px;
+            padding: 8px 20px;
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .loading-shimmer {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: #888;
+            font-size: 0.9rem;
+            z-index: 4;
+        }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid #333;
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* Fullscreen */
+        .video-wrap:fullscreen { border-radius: 0; }
+
+        /* --- Sections --- */
+        .section { padding: 48px 20px; }
+        .section.alt { background: var(--bg-alt); }
+        .section-inner { max-width: var(--max-w); margin: 0 auto; }
+        .section h2 {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+            color: var(--text);
+        }
+
+        /* --- Why Grid --- */
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+        }
+        .why-card {
+            text-align: center;
+            padding: 24px 16px;
+        }
+        .why-card .icon-wrap {
+            width: 48px; height: 48px;
+            background: var(--blue-light);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            color: var(--blue);
+        }
+        .why-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+        .why-card p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.55; }
+
+        /* --- Facilities --- */
+        .facilities-text {
+            max-width: 720px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .facilities-text p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.65;
+        }
+        .info-box {
+            background: var(--blue-light);
+            border-left: 4px solid var(--blue);
+            padding: 14px 20px;
+            border-radius: 0 8px 8px 0;
+            text-align: left;
+            font-size: 0.88rem;
+            color: #1e40af;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* --- Trust Badges --- */
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .trust-card {
+            text-align: center;
+            padding: 24px 12px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .trust-card .icon-wrap {
+            width: 44px; height: 44px;
+            background: var(--green-light);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            color: var(--green);
+        }
+        .trust-card h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+        .trust-card p { font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* --- Footer --- */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 24px 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        footer strong { color: var(--text); font-weight: 600; }
+
+        /* --- Responsive --- */
+        @media(max-width:768px) {
+            .hero h1 { font-size: 1.5rem; }
+            .why-grid { grid-template-columns: 1fr; gap: 12px; }
+            .trust-grid { grid-template-columns: repeat(2, 1fr); }
+            .hero-badges { gap: 14px; }
+        }
+        @media(max-width:480px) {
+            .hero { padding: 28px 16px 16px; }
+            .hero p { font-size: 0.95rem; }
+            .section { padding: 36px 16px; }
+            .trust-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .trust-card { padding: 16px 8px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav style="border-bottom:1px solid var(--border)">
+    <div class="nav">
+        <!-- UPDATE: Replace with your company name -->
+        <a class="nav-brand" href="#">Your Company Name</a>
+        <span class="live-indicator"><span class="pulse-dot"></span> LIVE NOW</span>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <h1>See Our Warehouse. Live. Right Now.</h1>
+    <p>We believe in 100% transparency. Watch our warehouse operations in real-time &mdash; because we have nothing to hide.</p>
+    <div class="hero-badges">
+        <span class="hero-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Verified Facility
+        </span>
+        <span class="hero-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Live &amp; Unedited
+        </span>
+        <span class="hero-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            24/7 Transparency
+        </span>
+    </div>
+</section>
+
+<!-- Live Stream -->
+<section class="stream-section">
+    <div class="video-wrap" id="videoContainer" onclick="toggleFullscreen()">
+        <div class="badge-live"><span class="pulse-dot"></span> LIVE</div>
+        <video id="video" autoplay muted playsinline></video>
+        <span class="timestamp-overlay" id="timestamp"></span>
+        <div class="loading-shimmer" id="loader">
+            <div class="spinner"></div>
+            <span>Connecting to live feed...</span>
+        </div>
+    </div>
+    <div class="stream-status">
+        <span class="s-dot" id="sDot"></span>
+        <span id="sText">Connecting...</span>
+    </div>
+    <div class="stream-error" id="streamError">
+        Live feed is temporarily unavailable. Our warehouse operations continue as normal.<br>
+        <button onclick="retryStream()">Retry Connection</button>
+    </div>
+</section>
+
+<!-- Why We Share -->
+<section class="section alt">
+    <div class="section-inner">
+        <h2>Why We Share Our Live Feed</h2>
+        <div class="why-grid">
+            <div class="why-card">
+                <div class="icon-wrap">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>Complete Transparency</h3>
+                <p>We open our doors &mdash; virtually &mdash; so you can see exactly how your goods are stored. No staged photos, no filters. Just real-time truth.</p>
+            </div>
+            <div class="why-card">
+                <div class="icon-wrap">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <h3>Quality Assurance</h3>
+                <p>Our warehouse maintains strict standards for storage conditions. See for yourself that your products are in safe, organized hands.</p>
+            </div>
+            <div class="why-card">
+                <div class="icon-wrap">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+                <h3>Nothing to Hide</h3>
+                <p>While competitors talk about trust, we show it. This live feed runs around the clock, giving you peace of mind at any hour.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Multiple Warehouses -->
+<section class="section">
+    <div class="section-inner facilities-text">
+        <h2>Multiple Warehouses, One Transparent Window</h2>
+        <!-- UPDATE: Replace [region] and facility count with your actual details -->
+        <p>We operate multiple godown facilities to serve our clients across different regions. For the privacy and security of all our locations, we share a live feed from one of our primary warehouses.</p>
+        <p>This demonstrates our commitment to transparency while maintaining necessary security protocols across our entire network of facilities.</p>
+        <div class="info-box">
+            <strong>Note:</strong> This feed shows one of our warehouse facilities. All our locations maintain the same high standards of storage, security, and organization that you see here.
+        </div>
+    </div>
+</section>
+
+<!-- Trust Badges -->
+<section class="section alt">
+    <div class="section-inner">
+        <h2>Why Businesses Trust Us</h2>
+        <div class="trust-grid">
+            <div class="trust-card">
+                <div class="icon-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                </div>
+                <h4>Verified Facility</h4>
+                <p>Inspected and approved</p>
+            </div>
+            <div class="trust-card">
+                <div class="icon-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <h4>Secure &amp; Monitored</h4>
+                <p>24/7 surveillance active</p>
+            </div>
+            <div class="trust-card">
+                <div class="icon-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                </div>
+                <h4>Standards Compliant</h4>
+                <p>Industry best practices</p>
+            </div>
+            <div class="trust-card">
+                <div class="icon-wrap">
+                    <!-- UPDATE: Replace the number below with your actual client count -->
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h4>Trusted by 500+ Clients</h4>
+                <p>Growing every month</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <!-- UPDATE: Replace with your company name -->
+    <strong>Your Company Name</strong> &copy; <span id="yr"></span><br>
+    <span style="font-size:0.75rem">This live feed is provided as part of our transparency commitment. Stream availability depends on network conditions.</span>
+</footer>
+
+<!-- HLS.js (only external dependency) -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+<script>
+    // =============================================
+    // UPDATE: Replace with your Cloudflare tunnel URL
+    // Run start.sh on your phone to get a new URL
+    // =============================================
+    const STREAM_URL = "https://technological-innocent-exercise-shorter.trycloudflare.com/stream.m3u8";
+    // =============================================
+
+    const video = document.getElementById('video');
+    const loader = document.getElementById('loader');
+    const sDot = document.getElementById('sDot');
+    const sText = document.getElementById('sText');
+    const errBox = document.getElementById('streamError');
+    let hls = null;
+    let retries = 0;
+    const MAX_RETRIES = 3;
+
+    function setStatus(ok, text) {
+        sDot.className = ok ? 's-dot' : 's-dot err';
+        sText.textContent = text;
+    }
+
+    function showError() {
+        errBox.style.display = 'block';
+    }
+
+    function initStream() {
+        errBox.style.display = 'none';
+        loader.style.display = 'flex';
+        setStatus(true, 'Connecting...');
+
+        if (hls) { hls.destroy(); hls = null; }
+
+        if (Hls.isSupported()) {
+            hls = new Hls({
+                liveSyncDurationCount: 3,
+                liveMaxLatencyDurationCount: 6,
+                enableWorker: true,
+                lowLatencyMode: true
+            });
+            hls.loadSource(STREAM_URL);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                loader.style.display = 'none';
+                video.play().catch(function(){});
+                setStatus(true, 'Connected \u2014 Live Feed');
+                retries = 0;
+            });
+
+            hls.on(Hls.Events.ERROR, function(event, data) {
+                if (data.fatal) {
+                    setStatus(false, 'Connection lost');
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR && retries < MAX_RETRIES) {
+                        retries++;
+                        setStatus(false, 'Reconnecting (' + retries + '/' + MAX_RETRIES + ')...');
+                        setTimeout(function() { hls.startLoad(); }, 3000);
+                    } else {
+                        loader.style.display = 'none';
+                        showError();
+                    }
+                }
+            });
+
+            // Timeout
+            setTimeout(function() {
+                if (loader.style.display !== 'none') {
+                    loader.style.display = 'none';
+                    setStatus(false, 'Could not connect');
+                    showError();
+                }
+            }, 20000);
+
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = STREAM_URL;
+            video.addEventListener('loadedmetadata', function() {
+                loader.style.display = 'none';
+                video.play().catch(function(){});
+                setStatus(true, 'Connected \u2014 Live Feed');
+            });
+        }
+    }
+
+    function retryStream() {
+        retries = 0;
+        initStream();
+    }
+
+    function toggleFullscreen() {
+        var c = document.getElementById('videoContainer');
+        if (document.fullscreenElement) { document.exitFullscreen(); }
+        else { c.requestFullscreen().catch(function(){}); }
+    }
+
+    // Timestamp overlay
+    function updateTime() {
+        var d = new Date();
+        document.getElementById('timestamp').textContent =
+            d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) +
+            ' \u2014 ' +
+            d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // Footer year
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // Auto-start
+    initStream();
+</script>
+</body>
+</html>
