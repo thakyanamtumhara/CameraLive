@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Camera</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            background: #111;
+            border-bottom: 1px solid #222;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 960px;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Landing state - shows button */
+        .landing {
+            text-align: center;
+        }
+
+        .landing p {
+            color: #888;
+            margin-bottom: 24px;
+            font-size: 1rem;
+        }
+
+        .btn-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 40px;
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-live:hover {
+            background: #b91c1c;
+            transform: scale(1.03);
+        }
+
+        .btn-live:active {
+            transform: scale(0.98);
+        }
+
+        .btn-live .dot {
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Player state */
+        .player-wrapper {
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-wrapper.active {
+            display: flex;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            aspect-ratio: 16/9;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .badge-live {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #dc2626;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            z-index: 10;
+        }
+
+        .badge-live .dot {
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .fullscreen-hint {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(0,0,0,0.7);
+            color: #aaa;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .status-bar {
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+
+        .status-dot.error {
+            background: #dc2626;
+        }
+
+        .error-msg {
+            color: #f87171;
+            margin-top: 16px;
+            text-align: center;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .btn-back {
+            margin-top: 20px;
+            padding: 10px 24px;
+            background: #222;
+            color: #aaa;
+            border: 1px solid #333;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-back:hover {
+            background: #333;
+            color: #fff;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            color: #888;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #dc2626;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Fullscreen styles */
+        .video-container:fullscreen {
+            border-radius: 0;
+        }
+
+        .video-container:fullscreen .fullscreen-hint {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.1rem; }
+            .container { padding: 12px; }
+            .btn-live { padding: 14px 32px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Live Camera</h1>
+</header>
+
+<div class="container">
+    <!-- Landing view -->
+    <div class="landing" id="landing">
+        <p>View live camera feed from the office</p>
+        <button class="btn-live" id="btnLive" onclick="startStream()">
+            <span class="dot"></span>
+            Live Camera
+        </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Connecting to camera...</span>
+    </div>
+
+    <!-- Player view -->
+    <div class="player-wrapper" id="player">
+        <div class="video-container" id="videoContainer" onclick="toggleFullscreen()">
+            <div class="badge-live"><span class="dot"></span> LIVE</div>
+            <video id="video" autoplay muted playsinline></video>
+            <div class="fullscreen-hint">Click for fullscreen</div>
+        </div>
+        <div class="status-bar">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connected</span>
+        </div>
+        <div class="error-msg" id="errorMsg"></div>
+        <button class="btn-back" onclick="stopStream()">Stop Viewing</button>
+    </div>
+</div>
+
+<!-- HLS.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+
+<script>
+    // ============================================
+    // CONFIGURATION - Update this URL after setup
+    // ============================================
+    // Replace with your Cloudflare tunnel URL + /cam/
+    // Example: "https://abc-def-ghi.trycloudflare.com/cam/"
+    const STREAM_URL = "TUNNEL_URL_HERE/cam/";
+    // ============================================
+
+    let hls = null;
+    const video = document.getElementById('video');
+
+    function showView(viewId) {
+        document.getElementById('landing').style.display = 'none';
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('player').classList.remove('active');
+
+        if (viewId === 'landing') {
+            document.getElementById('landing').style.display = '';
+        } else if (viewId === 'loading') {
+            document.getElementById('loading').classList.add('active');
+        } else if (viewId === 'player') {
+            document.getElementById('player').classList.add('active');
+        }
+    }
+
+    function startStream() {
+        if (STREAM_URL.includes("TUNNEL_URL_HERE")) {
+            alert("Stream URL not configured yet.\n\nUpdate the STREAM_URL in camera.html with your Cloudflare tunnel URL.");
+            return;
+        }
+
+        showView('loading');
+
+        if (Hls.isSupported()) {
+            hls = new Hls({
+                liveSyncDurationCount: 3,
+                liveMaxLatencyDurationCount: 6,
+                enableWorker: true,
+                lowLatencyMode: true,
+            });
+
+            hls.loadSource(STREAM_URL);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                showView('player');
+                video.play().catch(() => {});
+                setStatus(true, 'Connected - Live');
+            });
+
+            hls.on(Hls.Events.ERROR, function (event, data) {
+                if (data.fatal) {
+                    setStatus(false, 'Connection lost');
+                    showError('Stream connection lost. The camera may be offline.');
+
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                        // Try to recover from network errors
+                        setTimeout(() => {
+                            hls.startLoad();
+                            setStatus(true, 'Reconnecting...');
+                        }, 3000);
+                    }
+                }
+            });
+
+            // Timeout if stream doesn't connect in 15 seconds
+            setTimeout(() => {
+                if (!document.getElementById('player').classList.contains('active')) {
+                    showView('landing');
+                    alert('Could not connect to camera stream.\nMake sure the phone relay is running.');
+                }
+            }, 15000);
+
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari/iOS)
+            video.src = STREAM_URL;
+            video.addEventListener('loadedmetadata', function () {
+                showView('player');
+                video.play().catch(() => {});
+                setStatus(true, 'Connected - Live');
+            });
+        } else {
+            alert('Your browser does not support HLS video playback.');
+        }
+    }
+
+    function stopStream() {
+        if (hls) {
+            hls.destroy();
+            hls = null;
+        }
+        video.src = '';
+        showView('landing');
+    }
+
+    function toggleFullscreen() {
+        const container = document.getElementById('videoContainer');
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            container.requestFullscreen().catch(() => {});
+        }
+    }
+
+    function setStatus(ok, text) {
+        document.getElementById('statusDot').className = ok ? 'status-dot' : 'status-dot error';
+        document.getElementById('statusText').textContent = text;
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
