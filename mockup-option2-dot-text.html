@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option 2: Red Dot + LIVE Text Below</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; padding-top: 40px; }
+  h2 { color: #fff; margin-bottom: 20px; font-size: 18px; }
+  .label { color: #aaa; font-size: 13px; margin-bottom: 30px; }
+
+  /* Phone frame */
+  .phone { width: 390px; height: 700px; border: 3px solid #444; border-radius: 30px; overflow: hidden; background: #1a1a2e; position: relative; }
+
+  /* Header */
+  .header { background: #d4a832; text-align: center; padding: 12px 10px 8px; }
+  .header h1 { font-size: 22px; color: #1a1a2e; font-weight: 900; letter-spacing: -0.5px; }
+  .header p { font-size: 11px; color: #3a2a00; margin-top: 2px; }
+  .header .month { font-size: 12px; color: #1a1a2e; margin-top: 6px; }
+
+  /* Navbar */
+  .navbar { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; background: #d4a832; }
+
+  /* LIVE button replacing the grid icon — dot on top, text below */
+  .live-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: #1a1a2e;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
+    text-decoration: none;
+    min-width: 42px;
+  }
+  .live-dot-wrap {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .live-dot {
+    width: 10px;
+    height: 10px;
+    background: #dc2626;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+    z-index: 1;
+  }
+  .live-dot-wrap::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.25);
+    animation: ring 2s infinite;
+  }
+  .live-text {
+    font-size: 9px;
+    font-weight: 800;
+    color: #dc2626;
+    letter-spacing: 0.1em;
+    line-height: 1;
+  }
+
+  .nav-btn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+  }
+  .catalog { background: #1a1a2e; color: #d4a832; }
+  .cart { background: #1a1a2e; color: #d4a832; position: relative; }
+  .cart-badge { position: absolute; top: -4px; right: -4px; background: #dc2626; color: #fff; font-size: 10px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .order { background: #dc2626; color: #fff; }
+
+  /* Category pills */
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; justify-content: center; }
+  .pill { padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; color: #fff; }
+  .pill.red { background: #dc2626; }
+  .pill.blue { background: #2563eb; }
+  .pill.green { background: #16a34a; }
+  .pill.purple { background: #7c3aed; }
+  .pill.orange { background: #ea580c; }
+  .pill.teal { background: #0d9488; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38,0.7); }
+    50% { opacity: 0.6; transform: scale(0.85); box-shadow: 0 0 8px 4px rgba(220,38,38,0.3); }
+  }
+  @keyframes ring {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  .arrow { color: #dc2626; font-size: 28px; position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); }
+  .arrow-label { color: #dc2626; font-size: 13px; position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-weight: 700; }
+</style>
+</head>
+<body>
+  <h2>Option 2: Red Pulsing Dot + "LIVE" Text Below</h2>
+  <p class="label">Replaces the grid (☷) icon &mdash; dot on top, tiny "LIVE" label beneath</p>
+
+  <div class="phone">
+    <div class="header">
+      <h1>BulkPlainTshirt.com</h1>
+      <p>Own Knitted Blank Wears | sale91.com</p>
+      <div class="month">January 2026 (Last Month) 📅</div>
+    </div>
+
+    <div class="navbar">
+      <!-- LIVE button replacing the grid icon — dot + text below -->
+      <a class="live-btn" title="Watch LIVE">
+        <span class="live-dot-wrap">
+          <span class="live-dot"></span>
+        </span>
+        <span class="live-text">LIVE</span>
+      </a>
+
+      <a class="nav-btn catalog">Catalog</a>
+      <a class="nav-btn cart" style="position:relative;">🛒 Cart <span class="cart-badge">75</span></a>
+      <a class="nav-btn order">Order Now</a>
+    </div>
+
+    <div class="pills">
+      <span class="pill red">Oversize 210gsm</span>
+      <span class="pill red">Oversize 240gsm</span>
+      <span class="pill blue">Kids Rneck</span>
+      <span class="pill blue">Oversize 180gsm</span>
+      <span class="pill blue">True Bio Rneck</span>
+      <span class="pill green">Bio Rneck</span>
+      <span class="pill green">Non Bio Rneck</span>
+      <span class="pill green">Sublimation tshirt</span>
+      <span class="pill purple">Premium Polo</span>
+      <span class="pill purple">Cotton Polo</span>
+      <span class="pill purple">Hoodie 320gsm-1</span>
+      <span class="pill orange">Hoodie 320gsm-2</span>
+      <span class="pill orange">Sweatshirt</span>
+      <span class="pill orange">Sweatshirt-2</span>
+      <span class="pill teal">Boxy Fit</span>
+      <span class="pill teal">Varsity</span>
+      <span class="pill teal">Shorts</span>
+    </div>
+
+    <div style="position:relative; height: 100px;">
+      <div class="arrow">⬆</div>
+      <div class="arrow-label">🔴 pulsing dot + "LIVE" text (taps to open feed)</div>
+    </div>
+  </div>
+</body>
+</html>
