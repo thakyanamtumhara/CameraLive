@@ -103,39 +103,25 @@ if ! kill -0 $HTTP_PID 2>/dev/null; then
 fi
 echo "HTTP server running on port $HLS_PORT"
 
-# Start Cloudflare Tunnel and capture the URL
-echo "Starting Cloudflare Tunnel..."
+# Start Cloudflare Named Tunnel
+echo "Starting Cloudflare Tunnel (live.sale91.com)..."
 CF_LOG="$HOME/.cf_tunnel.log"
-cloudflared tunnel --url http://127.0.0.1:$HLS_PORT > "$CF_LOG" 2>&1 &
+TUNNEL_TOKEN="eyJhIjoiMjUzZjYzYjRhNTJhM2ViOTYxOGI3M2JjYjU4MmNjNGUiLCJ0IjoiNzFjNWYyMTgtMzc3Yi00MjA3LWFjNDQtZmZiMjhjNTA2NzlmIiwicyI6Ik5USTJOemhoWkdFdE5EWTJNeTAwWmpFMExUbGlNVGd0WWpRek16a3lORGhqTkRrMSJ9"
+cloudflared tunnel run --token "$TUNNEL_TOKEN" > "$CF_LOG" 2>&1 &
 CF_PID=$!
 
-# Wait and extract the tunnel URL
-TUNNEL_URL=""
-for i in $(seq 1 15); do
-    TUNNEL_URL=$(grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' "$CF_LOG" 2>/dev/null | head -1)
-    if [ -n "$TUNNEL_URL" ]; then
-        break
-    fi
-    sleep 1
-done
+# Wait for tunnel to connect
+sleep 5
 
 echo ""
 echo "========================================="
-if [ -n "$TUNNEL_URL" ]; then
-    # Update the stream URL in warehouse-live.html automatically
-    sed -i "s|const STREAM_URL = \".*\";|const STREAM_URL = \"$TUNNEL_URL/stream.m3u8\";|" "$HLS_DIR/warehouse-live.html" 2>/dev/null
-
-    echo "  STREAM IS LIVE!"
-    echo ""
-    echo "  Warehouse Trust Page (share this with buyers):"
-    echo "  $TUNNEL_URL/warehouse-live.html"
-    echo ""
-    echo "  Raw stream (for VLC):"
-    echo "  $TUNNEL_URL/stream.m3u8"
-else
-    echo "  Services running but tunnel URL not found."
-    echo "  Check $CF_LOG for the URL."
-fi
+echo "  STREAM IS LIVE!"
+echo ""
+echo "  Warehouse Trust Page (share this with buyers):"
+echo "  https://live.sale91.com/warehouse-live.html"
+echo ""
+echo "  Raw stream (for VLC):"
+echo "  https://live.sale91.com/stream.m3u8"
 echo "========================================="
 echo ""
 echo "Press Ctrl+C to stop."
