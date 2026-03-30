@@ -4,7 +4,7 @@
 # Uses ffmpeg + python HTTP server + cloudflared
 ############################################
 
-RTSP_URL="rtsp://ankitgupta780:0j23maqt546@192.168.1.8:554/stream1"
+RTSP_URL="rtsp://ankitgupta780:0j23maqt546@192.168.1.10:554/stream1"
 HLS_DIR="$HOME/hls"
 HLS_PORT=8888
 
