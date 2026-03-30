@@ -7,7 +7,6 @@
 RTSP_URL="rtsp://ankitgupta780:0j23maqt546@192.168.1.8:554/stream1"
 HLS_DIR="$HOME/hls"
 HLS_PORT=8888
-FFMPEG_LOG="$HOME/ffmpeg_error.log"
 
 # Pre-flight checks
 echo "========================================="
@@ -67,14 +66,51 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM EXIT
 
+# Extract camera IP from RTSP URL
+CAMERA_IP=$(echo "$RTSP_URL" | sed 's/.*@//;s/:.*//')
+CAMERA_PORT=$(echo "$RTSP_URL" | sed 's/.*@[^:]*://;s/\/.*//')
+
 # Start ffmpeg with auto-restart loop
 start_ffmpeg() {
     trap 'exit 0' TERM INT
+    ATTEMPT=0
     while true; do
-        echo "[ffmpeg] Connecting to camera..."
+        ATTEMPT=$((ATTEMPT + 1))
+        echo ""
+        echo "-----------------------------------------"
+        echo "[attempt #$ATTEMPT] $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "-----------------------------------------"
+
+        # Step 1: Check if camera IP is reachable
+        echo "[diag] Pinging camera at $CAMERA_IP..."
+        if ping -c 1 -W 3 "$CAMERA_IP" > /dev/null 2>&1; then
+            echo "[diag] PING OK - Camera IP $CAMERA_IP is reachable"
+        else
+            echo "[diag] PING FAILED - Camera IP $CAMERA_IP is NOT reachable"
+            echo "[diag] Camera may have a new IP. Check your router/Tapo app."
+            echo "[diag] Retrying in 5s..."
+            sleep 5 &
+            wait $!
+            continue
+        fi
+
+        # Step 2: Check if RTSP port is open
+        echo "[diag] Checking RTSP port $CAMERA_PORT..."
+        if (echo > /dev/tcp/"$CAMERA_IP"/"$CAMERA_PORT") 2>/dev/null; then
+            echo "[diag] PORT OK - RTSP port $CAMERA_PORT is open"
+        else
+            echo "[diag] PORT FAILED - RTSP port $CAMERA_PORT is closed"
+            echo "[diag] Camera RTSP service may not be running."
+            echo "[diag] Retrying in 5s..."
+            sleep 5 &
+            wait $!
+            continue
+        fi
+
+        # Step 3: Run ffmpeg with visible error output
+        echo "[ffmpeg] Connecting to $RTSP_URL"
         rm -f "$HLS_DIR"/*.ts "$HLS_DIR"/*.m3u8 2>/dev/null
         ffmpeg -rtsp_transport tcp \
-            -stimeout 5000000 \
             -fflags +genpts+discardcorrupt \
             -i "$RTSP_URL" \
             -c:v copy -c:a aac \
@@ -84,18 +120,12 @@ start_ffmpeg() {
             -hls_flags delete_segments+append_list \
             -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
             "$HLS_DIR/stream.m3u8" \
-            -loglevel error 2>"$FFMPEG_LOG"
+            -loglevel repeat+level+info 2>&1
         EXIT_CODE=$?
-        if [ -s "$FFMPEG_LOG" ]; then
-            echo "[ffmpeg] ERROR (exit code $EXIT_CODE):"
-            cat "$FFMPEG_LOG"
-            echo ""
-        else
-            echo "[ffmpeg] Exited with code $EXIT_CODE (no error output)"
-        fi
-        echo "[ffmpeg] Reconnecting in 3s..."
-        sleep 3 &
-        wait $!  # Wait on sleep so TERM signal can interrupt it
+        echo "[ffmpeg] Process exited with code: $EXIT_CODE"
+        echo "[ffmpeg] Reconnecting in 5s..."
+        sleep 5 &
+        wait $!
     done
 }
 start_ffmpeg &
