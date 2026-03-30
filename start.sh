@@ -115,7 +115,7 @@ start_ffmpeg() {
             -hls_flags delete_segments+append_list \
             -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
             "$HLS_DIR/stream.m3u8" \
-            -loglevel repeat+level+info 2>&1
+            -loglevel error 2>&1
         EXIT_CODE=$?
         echo "[ffmpeg] Process exited with code: $EXIT_CODE"
         echo "[ffmpeg] Reconnecting in 5s..."
