@@ -19,12 +19,7 @@ command -v cloudflared >/dev/null 2>&1 || { echo "ERROR: cloudflared not found."
 
 echo "All tools found."
 
-# Kill any leftover processes from previous runs (kill process groups)
-# Kill any previous start.sh instances (except ourselves)
-SELF_PID=$$
-ps aux 2>/dev/null | grep "[b]ash.*start.sh" | awk '{print $2}' | while read pid; do
-    [ "$pid" != "$SELF_PID" ] && kill -TERM -- -"$pid" 2>/dev/null; kill "$pid" 2>/dev/null
-done
+# Kill any leftover processes from previous runs
 pkill -f "ffmpeg.*rtsp" 2>/dev/null
 pkill -f "http.server $HLS_PORT" 2>/dev/null
 pkill -f "cloudflared" 2>/dev/null
