@@ -19,8 +19,13 @@ command -v cloudflared >/dev/null 2>&1 || { echo "ERROR: cloudflared not found."
 
 echo "All tools found."
 
-# Kill any leftover processes from previous runs
-pkill -f "ffmpeg.*stream1" 2>/dev/null
+# Kill any leftover processes from previous runs (kill process groups)
+# Kill any previous start.sh instances (except ourselves)
+SELF_PID=$$
+ps aux 2>/dev/null | grep "[b]ash.*start.sh" | awk '{print $2}' | while read pid; do
+    [ "$pid" != "$SELF_PID" ] && kill -TERM -- -"$pid" 2>/dev/null; kill "$pid" 2>/dev/null
+done
+pkill -f "ffmpeg.*rtsp" 2>/dev/null
 pkill -f "http.server $HLS_PORT" 2>/dev/null
 pkill -f "cloudflared" 2>/dev/null
 sleep 1
@@ -39,12 +44,20 @@ echo "========================================="
 echo "  CameraLive - Starting Services"
 echo "========================================="
 
+SHUTTING_DOWN=0
+
 cleanup() {
+    [ "$SHUTTING_DOWN" -eq 1 ] && return
+    SHUTTING_DOWN=1
     echo ""
     echo "Shutting down..."
-    pkill -f "ffmpeg.*stream1" 2>/dev/null
+    # Kill the ffmpeg loop subshell and all its children
+    [ -n "$FFMPEG_LOOP_PID" ] && kill "$FFMPEG_LOOP_PID" 2>/dev/null
+    # Kill any remaining ffmpeg processes
+    pkill -f "ffmpeg.*rtsp" 2>/dev/null
     pkill -f "http.server $HLS_PORT" 2>/dev/null
     pkill -f "cloudflared" 2>/dev/null
+    # Kill all child processes of this script
     kill $(jobs -p) 2>/dev/null
     wait 2>/dev/null
     rm -rf "$HLS_DIR"
@@ -53,8 +66,9 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM EXIT
 
-# Start ffmpeg with auto-restart loop (all output silenced)
+# Start ffmpeg with auto-restart loop
 start_ffmpeg() {
+    trap 'exit 0' TERM INT
     while true; do
         echo "[ffmpeg] Connecting to camera..."
         rm -f "$HLS_DIR"/*.ts "$HLS_DIR"/*.m3u8 2>/dev/null
@@ -70,7 +84,8 @@ start_ffmpeg() {
             "$HLS_DIR/stream.m3u8" \
             -loglevel fatal 2>/dev/null
         echo "[ffmpeg] Disconnected. Reconnecting in 3s..."
-        sleep 3
+        sleep 3 &
+        wait $!  # Wait on sleep so TERM signal can interrupt it
     done
 }
 start_ffmpeg &
@@ -128,10 +143,11 @@ echo "Press Ctrl+C to stop."
 echo ""
 
 # Keep running quietly
-while true; do
-    if ! kill -0 $FFMPEG_LOOP_PID 2>/dev/null; then
+while [ "$SHUTTING_DOWN" -eq 0 ]; do
+    if ! kill -0 $FFMPEG_LOOP_PID 2>/dev/null && [ "$SHUTTING_DOWN" -eq 0 ]; then
         start_ffmpeg &
         FFMPEG_LOOP_PID=$!
     fi
-    sleep 10
+    sleep 10 &
+    wait $!
 done
