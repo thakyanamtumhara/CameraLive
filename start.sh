@@ -82,8 +82,9 @@ start_ffmpeg() {
             -hls_flags delete_segments+append_list \
             -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
             "$HLS_DIR/stream.m3u8" \
-            -loglevel fatal 2>/dev/null
-        echo "[ffmpeg] Disconnected. Reconnecting in 3s..."
+            -loglevel warning 2>&1 | while IFS= read -r line; do echo "[ffmpeg] $line"; done
+        EXIT_CODE=${PIPESTATUS[0]}
+        echo "[ffmpeg] Exited with code $EXIT_CODE. Reconnecting in 3s..."
         sleep 3 &
         wait $!  # Wait on sleep so TERM signal can interrupt it
     done
