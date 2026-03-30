@@ -7,6 +7,7 @@
 RTSP_URL="rtsp://ankitgupta780:0j23maqt546@192.168.1.8:554/stream1"
 HLS_DIR="$HOME/hls"
 HLS_PORT=8888
+FFMPEG_LOG="$HOME/ffmpeg_error.log"
 
 # Pre-flight checks
 echo "========================================="
@@ -73,6 +74,7 @@ start_ffmpeg() {
         echo "[ffmpeg] Connecting to camera..."
         rm -f "$HLS_DIR"/*.ts "$HLS_DIR"/*.m3u8 2>/dev/null
         ffmpeg -rtsp_transport tcp \
+            -stimeout 5000000 \
             -fflags +genpts+discardcorrupt \
             -i "$RTSP_URL" \
             -c:v copy -c:a aac \
@@ -82,9 +84,16 @@ start_ffmpeg() {
             -hls_flags delete_segments+append_list \
             -hls_segment_filename "$HLS_DIR/seg_%03d.ts" \
             "$HLS_DIR/stream.m3u8" \
-            -loglevel warning 2>&1 | while IFS= read -r line; do echo "[ffmpeg] $line"; done
-        EXIT_CODE=${PIPESTATUS[0]}
-        echo "[ffmpeg] Exited with code $EXIT_CODE. Reconnecting in 3s..."
+            -loglevel error 2>"$FFMPEG_LOG"
+        EXIT_CODE=$?
+        if [ -s "$FFMPEG_LOG" ]; then
+            echo "[ffmpeg] ERROR (exit code $EXIT_CODE):"
+            cat "$FFMPEG_LOG"
+            echo ""
+        else
+            echo "[ffmpeg] Exited with code $EXIT_CODE (no error output)"
+        fi
+        echo "[ffmpeg] Reconnecting in 3s..."
         sleep 3 &
         wait $!  # Wait on sleep so TERM signal can interrupt it
     done
