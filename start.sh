@@ -4,9 +4,23 @@
 # Uses ffmpeg + python HTTP server + cloudflared
 ############################################
 
-RTSP_URL="rtsp://ankitgupta780:0j23maqt546@192.168.1.10:554/stream1"
+RTSP_USER="ankitgupta780"
+RTSP_PASS="0j23maqt546"
+RTSP_PATH="/stream1"
+RTSP_PORT=554
+CAMERA_MAC="34:60:f9:1b:dc:70"
+CAMERA_IP="192.168.1.10"
 HLS_DIR="$HOME/hls"
 HLS_PORT=8888
+LAST_KNOWN_IP_FILE="$HOME/.cameralive_last_ip"
+
+# Load last known working IP if available
+if [ -f "$LAST_KNOWN_IP_FILE" ]; then
+    SAVED_IP=$(cat "$LAST_KNOWN_IP_FILE")
+    if [ -n "$SAVED_IP" ]; then
+        CAMERA_IP="$SAVED_IP"
+    fi
+fi
 
 # Pre-flight checks
 echo "========================================="
@@ -61,14 +75,61 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM EXIT
 
-# Extract camera IP from RTSP URL
-CAMERA_IP=$(echo "$RTSP_URL" | sed 's/.*@//;s/:.*//')
-CAMERA_PORT=$(echo "$RTSP_URL" | sed 's/.*@[^:]*://;s/\/.*//')
+# Build RTSP URL from current camera IP
+build_rtsp_url() {
+    echo "rtsp://${RTSP_USER}:${RTSP_PASS}@${CAMERA_IP}:${RTSP_PORT}${RTSP_PATH}"
+}
+
+# Auto-discover camera IP by scanning network for its MAC address
+discover_camera() {
+    echo "[scan] Camera not at $CAMERA_IP. Scanning network for MAC $CAMERA_MAC..."
+
+    # Get the phone's subnet (e.g., 192.168.1)
+    SUBNET=$(ip route | grep "dev wlan0" | grep -oP '\d+\.\d+\.\d+\.' | head -1)
+    if [ -z "$SUBNET" ]; then
+        SUBNET="192.168.1."
+    fi
+    echo "[scan] Scanning subnet ${SUBNET}0/24..."
+
+    # Ping sweep to populate ARP table (send pings in parallel)
+    for i in $(seq 1 254); do
+        ping -c 1 -W 1 "${SUBNET}${i}" > /dev/null 2>&1 &
+    done
+    # Wait for ping sweep to finish (max 10s)
+    sleep 6
+
+    # Search ARP table for camera MAC
+    FOUND_IP=""
+    # Try 'ip neigh' first (most common on Termux)
+    if command -v ip > /dev/null 2>&1; then
+        FOUND_IP=$(ip neigh 2>/dev/null | grep -i "${CAMERA_MAC}" | awk '{print $1}' | head -1)
+    fi
+    # Fallback to 'arp' command
+    if [ -z "$FOUND_IP" ] && command -v arp > /dev/null 2>&1; then
+        FOUND_IP=$(arp -a 2>/dev/null | grep -i "${CAMERA_MAC}" | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1)
+    fi
+    # Fallback to /proc/net/arp
+    if [ -z "$FOUND_IP" ]; then
+        FOUND_IP=$(grep -i "${CAMERA_MAC}" /proc/net/arp 2>/dev/null | awk '{print $1}' | head -1)
+    fi
+
+    if [ -n "$FOUND_IP" ]; then
+        echo "[scan] FOUND camera at $FOUND_IP (MAC: $CAMERA_MAC)"
+        CAMERA_IP="$FOUND_IP"
+        echo "$CAMERA_IP" > "$LAST_KNOWN_IP_FILE"
+        return 0
+    else
+        echo "[scan] Camera MAC $CAMERA_MAC not found on network."
+        echo "[scan] Make sure camera is powered on and connected to WiFi."
+        return 1
+    fi
+}
 
 # Start ffmpeg with auto-restart loop
 start_ffmpeg() {
     trap 'exit 0' TERM INT
     ATTEMPT=0
+    SCAN_DONE=0
     while true; do
         ATTEMPT=$((ATTEMPT + 1))
         echo ""
@@ -79,31 +140,45 @@ start_ffmpeg() {
         # Step 1: Check if camera IP is reachable
         echo "[diag] Pinging camera at $CAMERA_IP..."
         if ping -c 1 -W 3 "$CAMERA_IP" > /dev/null 2>&1; then
-            echo "[diag] PING OK - Camera IP $CAMERA_IP is reachable"
+            echo "[diag] PING OK - $CAMERA_IP is reachable"
+            SCAN_DONE=0
         else
-            echo "[diag] PING FAILED - Camera IP $CAMERA_IP is NOT reachable"
-            echo "[diag] Camera may have a new IP. Check your router/Tapo app."
-            echo "[diag] Retrying in 5s..."
-            sleep 5 &
-            wait $!
-            continue
+            echo "[diag] PING FAILED - $CAMERA_IP is NOT reachable"
+            # Auto-scan network to find camera's new IP
+            if discover_camera; then
+                echo "[diag] Retrying with new IP $CAMERA_IP..."
+                continue
+            else
+                if [ "$SCAN_DONE" -lt 3 ]; then
+                    SCAN_DONE=$((SCAN_DONE + 1))
+                    echo "[diag] Will scan again in 10s... (scan $SCAN_DONE/3)"
+                    sleep 10 &
+                    wait $!
+                else
+                    echo "[diag] Camera not found after 3 scans. Waiting 30s..."
+                    SCAN_DONE=0
+                    sleep 30 &
+                    wait $!
+                fi
+                continue
+            fi
         fi
 
         # Step 2: Check if RTSP port is open
-        echo "[diag] Checking RTSP port $CAMERA_PORT..."
-        if (echo > /dev/tcp/"$CAMERA_IP"/"$CAMERA_PORT") 2>/dev/null; then
-            echo "[diag] PORT OK - RTSP port $CAMERA_PORT is open"
+        echo "[diag] Checking RTSP port $RTSP_PORT..."
+        if (echo > /dev/tcp/"$CAMERA_IP"/"$RTSP_PORT") 2>/dev/null; then
+            echo "[diag] PORT OK - RTSP port $RTSP_PORT is open"
         else
-            echo "[diag] PORT FAILED - RTSP port $CAMERA_PORT is closed"
-            echo "[diag] Camera RTSP service may not be running."
+            echo "[diag] PORT FAILED - RTSP port $RTSP_PORT is closed"
             echo "[diag] Retrying in 5s..."
             sleep 5 &
             wait $!
             continue
         fi
 
-        # Step 3: Run ffmpeg with visible error output
-        echo "[ffmpeg] Connecting to $RTSP_URL"
+        # Step 3: Run ffmpeg
+        RTSP_URL=$(build_rtsp_url)
+        echo "[ffmpeg] Connecting to camera at $CAMERA_IP..."
         rm -f "$HLS_DIR"/*.ts "$HLS_DIR"/*.m3u8 2>/dev/null
         ffmpeg -rtsp_transport tcp \
             -fflags +genpts+discardcorrupt \
@@ -117,8 +192,7 @@ start_ffmpeg() {
             "$HLS_DIR/stream.m3u8" \
             -loglevel error 2>&1
         EXIT_CODE=$?
-        echo "[ffmpeg] Process exited with code: $EXIT_CODE"
-        echo "[ffmpeg] Reconnecting in 5s..."
+        echo "[ffmpeg] Exited with code $EXIT_CODE. Reconnecting in 5s..."
         sleep 5 &
         wait $!
     done
@@ -127,6 +201,10 @@ start_ffmpeg &
 FFMPEG_LOOP_PID=$!
 
 # Wait for first HLS segment to appear
+echo ""
+echo "Camera MAC: $CAMERA_MAC"
+echo "Starting IP: $CAMERA_IP (auto-updates if IP changes)"
+echo ""
 echo "Waiting for camera stream..."
 for i in $(seq 1 30); do
     if [ -f "$HLS_DIR/stream.m3u8" ]; then
