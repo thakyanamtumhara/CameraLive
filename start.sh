@@ -139,10 +139,45 @@ for i in $(seq 1 30); do
     sleep 1
 done
 
-# Start Python HTTP server to serve HLS files
+# Start Python HTTP server to serve HLS files with dynamic CORS for bulkplaintshirt.com
 echo "Starting HTTP server on port $HLS_PORT..."
 cd "$HLS_DIR" || { echo "ERROR: Cannot cd to $HLS_DIR"; exit 1; }
-python3 -m http.server "$HLS_PORT" --bind 0.0.0.0 > /dev/null 2>&1 &
+
+cat << 'EOF' > cors_server.py
+import http.server
+import socketserver
+import sys
+
+class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # 1. Read who is requesting the file
+        origin = self.headers.get('Origin')
+        
+        # 2. If the request comes from your domain or subdomains, approve it explicitly
+        if origin and 'bulkplaintshirt.com' in origin:
+            self.send_header('Access-Control-Allow-Origin', origin)
+        else:
+            # Fallback for direct links
+            self.send_header('Access-Control-Allow-Origin', 'https://www.bulkplaintshirt.com')
+            
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'X-Requested-With, Content-type, Accept, Origin')
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        super().end_headers()
+
+    # Handle the invisible preflight request from the browser
+    def do_OPTIONS(self):
+        self.send_response(200, "ok")
+        self.end_headers()
+
+if __name__ == '__main__':
+    port = int(sys.argv[1])
+    socketserver.TCPServer.allow_reuse_address = True
+    with socketserver.TCPServer(("0.0.0.0", port), CORSRequestHandler) as httpd:
+        httpd.serve_forever()
+EOF
+
+python3 cors_server.py "$HLS_PORT" > /dev/null 2>&1 &
 HTTP_PID=$!
 cd - > /dev/null
 sleep 2
