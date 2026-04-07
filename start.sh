@@ -156,7 +156,7 @@ echo "HTTP server running on port $HLS_PORT"
 # Start Cloudflare Named Tunnel
 echo "Starting Cloudflare Tunnel (live.sale91.com)..."
 CF_LOG="$HOME/.cf_tunnel.log"
-TUNNEL_TOKEN="eyJhIjoiMjUzZjYzYjRhNTJhM2ViOTYxOGI3M2JjYjU4MmNjNGUiLCJ0IjoiNzFjNWYyMTgtMzc3Yi00MjA3LWFjNDQtZmZiMjhjNTA2NzlmIiwicyI6Ik5USTJOemhoWkdFdE5EWTJNeTAwWmpFMExUbGlNVGd0WWpRek16a3lORGhqTkRrMSJ9"
+TUNNEL_TOKEN="eyJhIjoiNzQ5NmQ3ZDIzNWVhMDg1NzFiOGEwNDgyOTljMWEyODIiLCJ0IjoiYjk2MTRlMGUtMjczNC00Y2Q5LWEzNDItMWE5YjI1YzIyNDRkIiwicyI6IlpqUmtaVGcwTVRBdE1EazNPUzAwWVdWaExXRXdZalF0WXpGa01HSmpOV1prTURRMiJ9"
 cloudflared tunnel run --token "$TUNNEL_TOKEN" > "$CF_LOG" 2>&1 &
 CF_PID=$!
 
